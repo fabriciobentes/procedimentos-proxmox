@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxmox Guia</title>
+<link rel="icon" type="image/svg+xml" href="https://cdn.simpleicons.org/fitbit">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bg:       #0a1628;
+  --bg2:      #0f1f3d;
+  --bg3:      #152542;
+  --surface:  #1a2f50;
+  --border:   #1e3a5f;
+  --accent:   #3b7cff;
+  --accent2:  #00d4aa;
+  --text:     #dde8ff;
+  --muted:    #6b85aa;
+  --code-bg:  #07111f;
+  --install:  #071d10;
+  --config:   #0d1a2e;
+  --trouble:  #1a0d0d;
+  --install-border: #1a5c2a;
+  --config-border:  #1a3a5c;
+  --trouble-border: #5c1a1a;
+  --sidebar-w: 200px;
+  --header-h: 56px;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); display: flex; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s;
+  z-index: 100;
+  overflow: hidden;
+}
+.sidebar.collapsed { width: 56px; }
+
+.logo {
+  padding: 18px 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  min-height: 64px;
+  flex-shrink: 0;
+}
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 7px;
+}
+
+.logo-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.logo-label {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sidebar.collapsed .logo-label { display: none; }
+
+.nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active {
+  background: var(--bg3);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-item i { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
+.sidebar.collapsed .nav-label { display: none; }
+
+/* ── MAIN ── */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  transition: margin-left 0.25s;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar.collapsed ~ .main { margin-left: 56px; }
+
+/* ── HEADER ── */
+.header {
+  height: var(--header-h);
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.toggle-btn {
+  background: none; border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.toggle-btn:hover { background: var(--surface); color: var(--text); }
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+  max-width: 1200px;
+}
+.search-wrap i {
+  position: absolute;
+  left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 13px;
+  pointer-events: none;
+}
+.search-wrap input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  padding: 7px 12px 7px 32px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-wrap input::placeholder { color: var(--muted); }
+.search-wrap input:focus { border-color: var(--accent); }
+
+.breadcrumb {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+.breadcrumb span { color: var(--accent2); }
+
+/* ── CONTENT ── */
+.content { flex: 1; padding: 32px 40px 60px; }
+
+/* ── HOME ── */
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: auto;
+  text-align: center;
+  gap: 20px;
+  padding-top: 80px;
+}
+.home-screen h1 { font-size: 42px; font-weight: 700; letter-spacing: -0.02em; }
+.home-screen h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.home-screen p { color: var(--muted); font-size: 16px; }
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 560px;
+}
+.home-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.home-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.home-card i { font-size: 20px; color: var(--accent); }
+.home-card span { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── DOC ── */
+.doc-header { margin-bottom: 28px; }
+.doc-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; }
+.doc-header p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+.doc-section { margin-bottom: 32px; }
+.doc-section h2 {
+  font-size: 15px; font-weight: 600;
+  color: var(--accent2);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.doc-section h3 {
+  font-size: 13px; font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 16px 0 8px;
+}
+
+/* ── TABS ── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.tab-btn {
+  padding: 7px 16px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { background: var(--surface); color: var(--text); }
+.tab-btn i { font-size: 12px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── CODE ── */
+.code-wrap {
+  position: relative;
+  margin: 8px 0 16px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.code-header.install { background: var(--install-border); color: #4ade80; border-bottom: 1px solid #1a5c2a; }
+.code-header.config  { background: var(--config-border);  color: #60a5fa; border-bottom: 1px solid #1a3a5c; }
+.code-header.trouble { background: var(--trouble-border); color: #f87171; border-bottom: 1px solid #5c1a1a; }
+
+.copy-btn {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: inherit;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.18); }
+.copy-btn.copied { color: #4ade80; }
+
+pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cde;
+}
+pre.install { background: var(--install); }
+pre.config  { background: var(--config); }
+pre.trouble { background: var(--trouble); }
+
+/* ── ALERT / TIP ── */
+.tip {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 16px 0;
+  line-height: 1.6;
+}
+.tip.warn { border-left-color: #f59e0b; }
+.tip.info { border-left-color: var(--accent2); }
+
+/* ── PARAM TABLE ── */
+.param-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 8px 0 16px;
+}
+.param-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--bg3);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.param-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+}
+.param-table tr:last-child td { border-bottom: none; }
+.param-table td code {
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent2);
+}
+
+/* ── HIDDEN ── */
+.hidden { display: none !important; }
+
+/* ── SEARCH HIGHLIGHT ── */
+.search-match { outline: 2px solid var(--accent); border-radius: var(--radius); }
+
+
+/* ── LOGIN OVERLAY ── */
+.login-overlay{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,var(--bg),var(--bg2));
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.login-box{
+  width:100%;
+  max-width:420px;
+  background:rgba(15,31,61,.96);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:34px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+
+.login-brand{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  margin-bottom:28px;
+  text-align:center;
+}
+
+.login-brand h1{
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:-0.02em;
+}
+
+.login-brand p{
+  color:var(--muted);
+  font-size:14px;
+}
+
+.login-field{
+  margin-bottom:18px;
+}
+
+.login-field label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+
+.login-field input{
+  width:100%;
+  height:48px;
+  border:1px solid var(--border);
+  background:var(--bg3);
+  color:var(--text);
+  border-radius:10px;
+  padding:0 14px;
+  font-size:14px;
+  outline:none;
+}
+
+.login-field input:focus{
+  border-color:var(--accent);
+}
+
+.login-submit{
+  width:100%;
+  height:48px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.login-error{
+  display:none;
+  margin-top:14px;
+  background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.25);
+  color:#fca5a5;
+  border-radius:10px;
+  padding:12px;
+  font-size:13px;
+}
+
+.app-lock{
+  display:none;
+}
+
+.login-logo{
+  width:78px !important;
+  height:78px !important;
+  border-radius:16px;
+}
+
+.login-logo svg{
+  width:40px !important;
+  height:40px !important;
+}
+.login-pass-wrap{
+  position:relative;
+}
+
+.login-pass-wrap input{
+  padding-right:48px;
+}
+
+.login-eye{
+  position:absolute;
+  top:50%;
+  right:12px;
+  transform:translateY(-50%);
+  width:28px;
+  height:28px;
+  border:none;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+}
+
+.login-eye:hover{
+  color:var(--text);
+}
+
+
+.top-user{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-left:auto;
+}
+
+.top-user-info{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+}
+
+.top-user-avatar{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+  font-size:12px;
+}
+
+.top-user-info span{
+  margin-top:4px;
+  font-size:11px;
+  color:var(--muted);
+  line-height:1;
+  text-transform:lowercase;
+}
+
+</style>
+</head>
+<body>
+
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="logo-icon login-logo">
+        <svg role="img" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <title>Fitbit</title>
+          <path d="M13.298 1.825c0 .976-.81 1.785-1.786 1.785-.972 0-1.784-.81-1.784-1.785 0-.973.813-1.785 1.784-1.785.976 0 1.786.813 1.786 1.785zm-1.786 3.243c-1.052 0-1.863.81-1.863 1.866 0 1.053.81 1.865 1.865 1.865 1.053 0 1.865-.811 1.865-1.865s-.825-1.866-1.875-1.866h.008zm0 5.029c-1.052 0-1.945.891-1.945 1.945s.894 1.945 1.947 1.945 1.946-.891 1.946-1.945-.894-1.945-1.946-1.945h-.002zm0 5.107c-1.052 0-1.863.81-1.863 1.864s.81 1.866 1.865 1.866c1.053 0 1.865-.811 1.865-1.866 0-.972-.825-1.864-1.875-1.864h.008zm0 5.191c-.972 0-1.784.809-1.784 1.784 0 .97.813 1.781 1.784 1.781.977 0 1.786-.809 1.786-1.784 0-.973-.81-1.781-1.786-1.781zM16.46 4.823c-1.136 0-2.108.977-2.108 2.111 0 1.134.973 2.107 2.108 2.107 1.135 0 2.106-.975 2.106-2.107 0-1.135-.972-2.109-2.106-2.109v-.002zm0 5.03c-1.216 0-2.19.973-2.19 2.19 0 1.216.975 2.187 2.19 2.187 1.215 0 2.189-.971 2.189-2.189 0-1.216-.974-2.188-2.189-2.188zm0 5.108c-1.136 0-2.108.976-2.108 2.107 0 1.135.973 2.109 2.108 2.109 1.135 0 2.106-.976 2.106-2.109s-.971-2.107-2.106-2.107zm5.106-5.353c-1.296 0-2.43 1.055-2.43 2.434 0 1.297 1.051 2.433 2.43 2.433 1.381 0 2.434-1.065 2.434-2.444-.082-1.382-1.135-2.431-2.434-2.431v.008zM6.486 5.312c-.892 0-1.62.73-1.62 1.623 0 .891.729 1.62 1.62 1.62.893 0 1.619-.729 1.619-1.62 0-.893-.727-1.62-1.619-1.62v-.003zm0 5.027c-.973 0-1.703.729-1.703 1.703 0 .975.721 1.703 1.695 1.703s1.695-.73 1.695-1.703c0-.975-.735-1.703-1.71-1.703h.023zm0 5.107c-.892 0-1.62.731-1.62 1.62 0 .895.729 1.623 1.62 1.623.893 0 1.619-.735 1.619-1.635s-.727-1.62-1.619-1.62v.012zm-5.025-4.863c-.813 0-1.461.646-1.461 1.459 0 .81.648 1.459 1.46 1.459.81 0 1.459-.648 1.459-1.459s-.648-1.459-1.458-1.459z"/>
+        </svg>
+      </div>
+      <h1>Proxmox Guia</h1>
+      <p>Acesso administrativo</p>
+    </div>
+
+    <form id="loginForm">
+      <div class="login-field">
+        <label>Usuário</label>
+        <input type="text" id="loginUser" required>
+      </div>
+
+      <div class="login-field">
+        <label>Senha</label>
+        <div class="login-pass-wrap">
+          <input type="password" id="loginPass" required>
+          <button type="button" class="login-eye" id="togglePass" aria-label="Visualizar senha">
+            <i class="fa fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="login-submit">Entrar</button>
+      <div class="login-error" id="loginError">Usuário ou senha inválidos.</div>
+    </form>
+  </div>
+</div>
+  
+
+<!-- SIDEBAR -->
+<nav class="sidebar app-lock" id="sidebar">
+  <div class="logo">
+      <div class="logo-icon">
+        <svg role="img" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <title>Fitbit</title>
+          <path d="M13.298 1.825c0 .976-.81 1.785-1.786 1.785-.972 0-1.784-.81-1.784-1.785 0-.973.813-1.785 1.784-1.785.976 0 1.786.813 1.786 1.785zm-1.786 3.243c-1.052 0-1.863.81-1.863 1.866 0 1.053.81 1.865 1.865 1.865 1.053 0 1.865-.811 1.865-1.865s-.825-1.866-1.875-1.866h.008zm0 5.029c-1.052 0-1.945.891-1.945 1.945s.894 1.945 1.947 1.945 1.946-.891 1.946-1.945-.894-1.945-1.946-1.945h-.002zm0 5.107c-1.052 0-1.863.81-1.863 1.864s.81 1.866 1.865 1.866c1.053 0 1.865-.811 1.865-1.866 0-.972-.825-1.864-1.875-1.864h.008zm0 5.191c-.972 0-1.784.809-1.784 1.784 0 .97.813 1.781 1.784 1.781.977 0 1.786-.809 1.786-1.784 0-.973-.81-1.781-1.786-1.781zM16.46 4.823c-1.136 0-2.108.977-2.108 2.111 0 1.134.973 2.107 2.108 2.107 1.135 0 2.106-.975 2.106-2.107 0-1.135-.972-2.109-2.106-2.109v-.002zm0 5.03c-1.216 0-2.19.973-2.19 2.19 0 1.216.975 2.187 2.19 2.187 1.215 0 2.189-.971 2.189-2.189 0-1.216-.974-2.188-2.189-2.188zm0 5.108c-1.136 0-2.108.976-2.108 2.107 0 1.135.973 2.109 2.108 2.109 1.135 0 2.106-.976 2.106-2.109s-.971-2.107-2.106-2.107zm5.106-5.353c-1.296 0-2.43 1.055-2.43 2.434 0 1.297 1.051 2.433 2.43 2.433 1.381 0 2.434-1.065 2.434-2.444-.082-1.382-1.135-2.431-2.434-2.431v.008zM6.486 5.312c-.892 0-1.62.73-1.62 1.623 0 .891.729 1.62 1.62 1.62.893 0 1.619-.729 1.619-1.62 0-.893-.727-1.62-1.619-1.62v-.003zm0 5.027c-.973 0-1.703.729-1.703 1.703 0 .975.721 1.703 1.695 1.703s1.695-.73 1.695-1.703c0-.975-.735-1.703-1.71-1.703h.023zm0 5.107c-.892 0-1.62.731-1.62 1.62 0 .895.729 1.623 1.62 1.623.893 0 1.619-.735 1.619-1.635s-.727-1.62-1.619-1.62v.012zm-5.025-4.863c-.813 0-1.461.646-1.461 1.459 0 .81.648 1.459 1.46 1.459.81 0 1.459-.648 1.459-1.459s-.648-1.459-1.458-1.459z"/>
+        </svg>
+      </div>
+    <span class="logo-label">Proxmox Guia</span>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" data-page="home" onclick="goTo('home',this)">
+      <i class="fa fa-house"></i><span class="nav-label">Início</span>
+    </div>
+
+    <div class="nav-item" data-page="proxmox" onclick="goTo('proxmox',this)">
+      <i class="fa fa-server"></i><span class="nav-label">Proxmox</span>
+    </div>
+
+    <div class="nav-item" data-page="cts" onclick="goTo('cts',this)">
+      <i class="fa fa-box"></i><span class="nav-label">Containers</span>
+    </div>
+
+    <div class="nav-item" data-page="docker" onclick="goTo('docker',this)">
+      <i class="fab fa-docker"></i><span class="nav-label">Docker</span>
+    </div>
+
+    <div class="nav-item" data-page="nginx" onclick="goTo('nginx',this)">
+      <i class="fa fa-network-wired"></i><span class="nav-label">Nginx Proxy</span>
+    </div>
+
+    <div class="nav-item" data-page="pihole" onclick="goTo('pihole',this)">
+      <i class="fa fa-shield-halved"></i><span class="nav-label">Pi-hole</span>
+    </div>
+
+    <div class="nav-item" data-page="ubuntu" onclick="goTo('ubuntu',this)">
+      <i class="fab fa-ubuntu"></i><span class="nav-label">Ubuntu VM</span>
+    </div>
+
+    <div class="nav-item" data-page="backup" onclick="goTo('backup',this)">
+      <i class="fa fa-floppy-disk"></i><span class="nav-label">Backup & Restore</span>
+    </div>
+
+    <div class="nav-item" data-page="recovery" onclick="goTo('recovery',this)">
+      <i class="fa fa-screwdriver-wrench"></i><span class="nav-label">Recovery</span>
+    </div>
+
+    <div class="nav-item" data-page="utils" onclick="goTo('utils',this)">
+      <i class="fa fa-toolbox"></i><span class="nav-label">Utilitários</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main app-lock" id="mainApp">
+
+  <!-- HEADER -->
+  <header class="header">
+    <button class="toggle-btn" onclick="toggleSidebar()"><i class="fa fa-bars"></i></button>
+    <div class="search-wrap">
+      <i class="fa fa-magnifying-glass"></i>
+      <input type="text" id="search" placeholder="Buscar comandos..." oninput="doSearch(this.value)">
+    </div>
+   <!-- <div class="breadcrumb" id="breadcrumb">/<span>início</span></div>-->
+    <div class="top-user">
+    <div class="top-user-info">
+      <div class="top-user-avatar">
+        <i class="fa fa-user"></i>
+      </div>
+  
+    </div>
+
+    <button class="toggle-btn" onclick="logout()">
+      <i class="fa fa-right-from-bracket"></i>
+    </button>
+  </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- HOME -->
+    <div id="home" class="page active">
+      <div class="home-screen">
+        <h1><span>PROXMOX</span> Guia</h1>
+        <p>Guia de instalação e recuperação do servidor Proxmox VE</p>
+        <div class="home-cards">
+          <div class="home-card" onclick="goTo('proxmox', document.querySelector('[data-page=proxmox]'))">
+            <i class="fa fa-server"></i><span>Proxmox</span>
+          </div>
+          <div class="home-card" onclick="goTo('cts', document.querySelector('[data-page=cts]'))">
+            <i class="fa fa-box"></i><span>Containers</span>
+          </div>
+          <div class="home-card" onclick="goTo('docker', document.querySelector('[data-page=docker]'))">
+            <i class="fab fa-docker"></i><span>Docker</span>
+          </div>
+          <div class="home-card" onclick="goTo('nginx', document.querySelector('[data-page=nginx]'))">
+            <i class="fa fa-network-wired"></i><span>Nginx</span>
+          </div>
+          <div class="home-card" onclick="goTo('pihole', document.querySelector('[data-page=pihole]'))">
+            <i class="fa fa-shield-halved"></i><span>Pi-hole</span>
+          </div>
+          <div class="home-card" onclick="goTo('ubuntu', document.querySelector('[data-page=ubuntu]'))">
+            <i class="fab fa-ubuntu"></i><span>Ubuntu</span>
+          </div>
+          <div class="home-card" onclick="goTo('backup', document.querySelector('[data-page=backup]'))">
+            <i class="fa fa-floppy-disk"></i><span>Backup</span>
+          </div>
+          <div class="home-card" onclick="goTo('recovery', document.querySelector('[data-page=recovery]'))">
+            <i class="fa fa-screwdriver-wrench"></i><span>Recovery</span>
+          </div>
+          <div class="home-card" onclick="goTo('utils', document.querySelector('[data-page=utils]'))">
+            <i class="fa fa-toolbox"></i><span>Utilitários</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- PROXMOX -->
+<div id="proxmox" class="page">
+  <div class="doc-header">
+    <h1><i class="fa fa-server" style="color:var(--accent);margin-right:10px"></i>Proxmox</h1>
+    <p>Instalação, configuração e operação do host Proxmox VE.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab(this,'pve-install')"><i class="fa fa-download"></i>Instalação</button>
+    <button class="tab-btn" onclick="openTab(this,'pve-config')"><i class="fa fa-sliders"></i>Configuração</button>
+    <button class="tab-btn" onclick="openTab(this,'pve-host')"><i class="fa fa-server"></i>Host</button>
+  </div>
+
+  <div id="pve-install" class="tab-pane active">
+    <div class="doc-section">
+      <h2>Instalação base do Proxmox</h2>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parâmetro</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Country</td><td><code>Brazil</code></td></tr>
+          <tr><td>Time Zone</td><td><code>America/Manaus</code></td></tr>
+          <tr><td>Keyboard</td><td><code>br-abnt2</code></td></tr>
+          <tr><td>Email</td><td><code>harpia@softsolution.com</code></td></tr>
+          <tr><td>Hostname</td><td><code>pve.1</code></td></tr>
+          <tr><td>IP</td><td><code>10.170.7.x/16</code></td></tr>
+          <tr><td>Gateway</td><td><code>10.170.0.1</code></td></tr>
+          <tr><td>DNS</td><td><code>8.8.8.8</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="doc-section">
+      <h2>Primeiro acesso ao host</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-globe"></i> painel web</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">https://10.170.7.x:8006</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-user"></i> login</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">User: root
+Realm: Linux PAM authentication
+Password: senha definida na instalação</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Remover repositório enterprise</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-file"></i> pve-enterprise.list</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">nano /etc/apt/sources.list.d/pve-enterprise.list</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-ban"></i> desabilitar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install"># deb https://enterprise.proxmox.com/debian/pve bookworm pve-enterprise</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Adicionar repositório no-subscription</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-file"></i> pve-no-subscription.list</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">nano /etc/apt/sources.list.d/pve-no-subscription.list</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-plus"></i> adicionar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Atualizar host</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-terminal"></i> update</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">apt update && apt full-upgrade -y</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-rotate-right"></i> reboot</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">reboot</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Atualizar templates LXC</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-download"></i> pveam</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">pveam update</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="pve-config" class="tab-pane">
+    <div class="doc-section">
+      <h2>Editar configuração de rede</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-file"></i> /etc/network/interfaces</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">nano /etc/network/interfaces</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-network-wired"></i> vmbr0</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">auto lo
+iface lo inet loopback
+
+auto enp0s3
+iface enp0s3 inet manual
+
+auto vmbr0
+iface vmbr0 inet static
+    address 10.170.7.x/16
+    gateway 10.170.0.1
+    bridge-ports enp0s3
+    bridge-stp off
+    bridge-fd 0</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Editar arquivo hosts</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-file"></i> /etc/hosts</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">nano /etc/hosts</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-file"></i> hosts</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">127.0.0.1 localhost.localdomain localhost
+10.170.7.x pve.1.local pve.1</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Definir hostname</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-tag"></i> hostname</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">hostnamectl set-hostname pve.1</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Aplicar alterações</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-terminal"></i> aplicar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">ifreload -a</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-rotate-right"></i> reiniciar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">reboot</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Storage local</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-hard-drive"></i> verificar storage</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pvesm status</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="pve-host" class="tab-pane">
+    <div class="doc-section">
+      <h2>Serviços do host</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-server"></i> serviços</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">systemctl status pveproxy
+systemctl status pvedaemon
+systemctl status pve-cluster</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Reiniciar painel web</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-rotate-right"></i> pveproxy</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">systemctl restart pveproxy</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Storage e discos</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-hard-drive"></i> storage</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">pvesm status
+lsblk
+df -h</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Rede do host</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-network-wired"></i> rede</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">ip a
+brctl show</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Recursos do host</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-microchip"></i> recursos</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">htop
+free -h
+uptime</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Cluster</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-diagram-project"></i> cluster</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">pvecm status</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Shell útil</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> utilitários</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">qm list
+pct list
+journalctl -xe
+dmesg -T | tail -50</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Atualizar host</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-download"></i> update</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">apt update && apt full-upgrade -y</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTAINERS -->
+<div id="cts" class="page">
+  <div class="doc-header">
+    <h1><i class="fa fa-box" style="color:var(--accent);margin-right:10px"></i>Containers (CTs)</h1>
+    <p>Template operacional padrão para criação, organização e manutenção dos containers LXC no Proxmox.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab(this,'ct-overview')"><i class="fa fa-layer-group"></i>Visão Geral</button>
+    <button class="tab-btn" onclick="openTab(this,'ct-create')"><i class="fa fa-plus"></i>Criação</button>
+    <button class="tab-btn" onclick="openTab(this,'ct-manage')"><i class="fa fa-sliders"></i>Gerenciamento</button>
+  </div>
+
+  <div id="ct-overview" class="tab-pane active">
+    <div class="doc-section">
+      <h2>Padrão global dos CTs</h2>
+      <div class="tip info">
+        <strong>Padrão operacional:</strong> Todos os containers (CTs) utilizam a senha padrão de root
+        <code>1qa3ed5tg7uj</code>, definida já no momento da criação com o parâmetro
+        <code>--password</code>.
+      </div>
+
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Padrão</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Template base</td><td><code>debian-13-standard_13.1-2_amd64.tar.zst</code></td></tr>
+          <tr><td>Senha root padrão</td><td><code>1qa3ed5tg7uj</code></td></tr>
+          <tr><td>Bridge</td><td><code>vmbr0</code></td></tr>
+          <tr><td>Gateway</td><td><code>10.170.0.1</code></td></tr>
+          <tr><td>DNS</td><td><code>8.8.8.8</code></td></tr>
+          <tr><td>Tipo</td><td><code>Unprivileged</code></td></tr>
+          <tr><td>Boot automático</td><td><code>onboot 1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="doc-section">
+      <h2>Containers padrão da infraestrutura</h2>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>IP</th>
+            <th>RAM</th>
+            <th>CPU</th>
+            <th>Disco</th>
+            <th>Função</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>100</code></td>
+            <td><code>docker</code></td>
+            <td><code>10.170.7.102</code></td>
+            <td><code>10 GB</code></td>
+            <td><code>4</code></td>
+            <td><code>100 GB</code></td>
+            <td>Docker + Portainer</td>
+          </tr>
+          <tr>
+            <td><code>101</code></td>
+            <td><code>pihole</code></td>
+            <td><code>10.170.7.100</code></td>
+            <td><code>512 MB</code></td>
+            <td><code>1</code></td>
+            <td><code>10 GB</code></td>
+            <td>DNS / Bloqueio</td>
+          </tr>
+          <tr>
+            <td><code>102</code></td>
+            <td><code>proxy</code></td>
+            <td><code>10.170.7.101</code></td>
+            <td><code>3 GB</code></td>
+            <td><code>2</code></td>
+            <td><code>10 GB</code></td>
+            <td>Nginx Proxy</td>
+          </tr>
+          <tr>
+            <td><code>103</code></td>
+            <td><code>Ubuntu</code></td>
+            <td><code>10.170.7.103</code></td>
+            <td><code>4 GB</code></td>
+            <td><code>2</code></td>
+            <td><code>100 GB</code></td>
+            <td>Ubuntu servidor de acesso</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="ct-create" class="tab-pane">
+    <div class="doc-section">
+      <h2>Baixar template Debian 13</h2>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-download"></i> atualizar templates</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pveam update</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-download"></i> baixar Debian 13</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pveam download local debian-13-standard_13.1-2_amd64.tar.zst</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-download"></i> baixar Ubuntu 24.04.4</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">wget -P /var/lib/vz/template/iso/ https://releases.ubuntu.com/24.04/ubuntu-24.04.4-desktop-amd64.iso</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-check"></i> validar template</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pveam list local</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Criar CT 100 — Docker</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-terminal"></i> pct create 100</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pct create 100 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
+  --hostname docker \
+  --memory 10240 \
+  --swap 1024 \
+  --cores 4 \
+  --rootfs local-lvm:100 \
+  --net0 name=eth0,bridge=vmbr0,ip=10.170.7.102/16,gw=10.170.0.1 \
+  --nameserver 8.8.8.8 \
+  --password 1qa3ed5tg7uj \
+  --unprivileged 1 \
+  --onboot 1
+</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Criar CT 101 — Pi-hole</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-terminal"></i> pct create 101</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pct create 101 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
+  --hostname pihole \
+  --memory 512 \
+  --swap 512 \
+  --cores 1 \
+  --rootfs local-lvm:10 \
+  --net0 name=eth0,bridge=vmbr0,ip=10.170.7.100/16,gw=10.170.0.1 \
+  --nameserver 8.8.8.8 \
+  --password 1qa3ed5tg7uj \
+  --unprivileged 1 \
+  --onboot 1
+
+</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Criar CT 102 — Nginx Proxy</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-terminal"></i> pct create 102</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">pct create 102 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
+  --hostname proxy \
+  --memory 3072 \
+  --swap 512 \
+  --cores 2 \
+  --rootfs local-lvm:10 \
+  --net0 name=eth0,bridge=vmbr0,ip=10.170.7.101/16,gw=10.170.0.1 \
+  --nameserver 8.8.8.8 \
+  --password 1qa3ed5tg7uj \
+  --unprivileged 1 \
+  --onboot 1
+
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-section">
+    <h2>Criar VM 103 — Ubuntu</h2>
+    <div class="code-wrap">
+      <div class="code-header config"><span><i class="fa fa-terminal"></i> pct create 103</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+      <pre class="config">qm create 103 \
+  --name ubuntu \
+  --memory 4096 \
+  --cores 2 \
+  --net0 virtio,bridge=vmbr0 \
+  --ide0 local:iso/ubuntu-24.04.4-desktop-amd64.iso,media=cdrom \
+  --scsi0 local-lvm:100 \
+  --boot order=ide0 \
+  --ostype l26 \
+  --onboot 1
+
+qm start 103</pre>
+    </div>
+  </div>  
+
+  <div id="ct-manage" class="tab-pane">
+    <div class="doc-section">
+      <h2>Gerenciamento básico</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> comandos</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">pct list
+pct start ID
+pct stop ID
+pct restart ID
+pct enter ID
+pct shutdown ID</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Ajustar recursos</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-sliders"></i> recursos</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">pct set ID --memory 4096
+pct set ID --cores 2
+pct set ID --swap 1024</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Ativar nesting (Docker em CT)</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-cubes"></i> nesting</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">pct set 100 -features nesting=1
+pct reboot 100</pre>
+      </div>
+    </div>
+
+    <div class="tip warn">
+      <strong>Atenção:</strong> Sempre que um CT for destinado a Docker, habilite <code>nesting=1</code> antes da instalação para evitar falhas com cgroups e namespaces.
+    </div>
+  </div>
+</div>
+
+<!-- DOCKER -->
+<div id="docker" class="page">
+  <div class="doc-header">
+    <h1><i class="fab fa-docker" style="color:var(--accent);margin-right:10px"></i>Docker</h1>
+    <p>Instalação completa do Docker, Portainer e acesso remoto via MobaXterm.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab(this,'dk-install')"><i class="fa fa-download"></i>Docker</button>
+    <button class="tab-btn" onclick="openTab(this,'dk-config')"><i class="fa fa-cubes"></i>Portainer</button>
+    <button class="tab-btn" onclick="openTab(this,'dk-trouble')"><i class="fa fa-terminal"></i>MobaXterm</button>
+  </div>
+
+  <div id="dk-install" class="tab-pane active">
+    <div class="doc-section">
+      <h2>Instalação completa do Docker</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-terminal"></i> instalar docker</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">apt update && apt full-upgrade -y
+apt install -y curl sudo nano
+curl -fsSL https://get.docker.com | bash</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Habilitar Docker no boot</h2>
+      <div class="code-wrap">
+        <div class="code-header install"><span><i class="fa fa-terminal"></i> systemctl</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="install">systemctl enable docker
+systemctl start docker
+systemctl status docker
+docker --version</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="dk-config" class="tab-pane">
+    <div class="doc-section">
+      <h2>Instalar Portainer</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-database"></i> volume</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">docker volume create portainer_data</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-cubes"></i> container</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">docker run -d \
+  --name portainer \
+  --restart=always \
+  -p 8000:8000 \
+  -p 9443:9443 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v portainer_data:/data \
+  portainer/portainer-ce:latest</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Acesso ao Portainer</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-globe"></i> navegador</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">https://10.170.7.102:9443</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="dk-trouble" class="tab-pane">
+    <div class="doc-section">
+      <h2>Preparar acesso via MobaXterm</h2>
+
+      <h3>Instalar SSH</h3>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> openssh</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">apt update && apt install openssh-server -y</pre>
+      </div>
+
+      <h3>Definir senha do root</h3>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-user"></i> root</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">passwd root</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-key"></i> senha</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">1qa3ed5tg7uj</pre>
+      </div>
+
+      <h3>Liberar login root via SSH</h3>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-file"></i> sshd_config</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">nano /etc/ssh/sshd_config</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-file"></i> editar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">PermitRootLogin yes
+PasswordAuthentication yes</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> aplicar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">systemctl enable ssh
+systemctl restart ssh
+systemctl status ssh</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Acesso via MobaXterm</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> conexão</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">Host: 10.170.7.102
+Port: 22
+User: root
+Password: 1qa3ed5tg7uj</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Downloads necessários</h2>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-download"></i> mobaxtrem portable</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">https://download.mobatek.net/2632026040882303/MobaXterm_Portable_v26.3.zip</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-download"></i> 7-zip 64bits</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">https://github.com/ip7z/7zip/releases/download/26.00/7z2600-x64.exe</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-download"></i> 7-zip 32bits</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">https://github.com/ip7z/7zip/releases/download/26.00/7z2600.exe</pre>
+      </div>
+    </div>
+
+    <div class="tip warn">
+      <strong>Atenção:</strong> Após configurar o SSH e definir a senha do root, o CT Docker poderá ser acessado diretamente no MobaXterm usando o IP <code>10.170.7.102</code>.
+    </div>
+  </div>
+</div>
+
+    <!-- NGINX -->
+    <div id="nginx" class="page">
+      <div class="doc-header">
+        <h1><i class="fa fa-network-wired" style="color:var(--accent);margin-right:10px"></i>Nginx</h1>
+        <p>Servidor web e proxy reverso de alta performance.</p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="openTab(this,'ng-install')"><i class="fa fa-download"></i>Instalação</button>
+        <button class="tab-btn" onclick="openTab(this,'ng-config')"><i class="fa fa-gear"></i>Configuração</button>
+        <button class="tab-btn" onclick="openTab(this,'ng-trouble')"><i class="fa fa-bug"></i>Troubleshooting</button>
+      </div>
+
+      <div id="ng-install" class="tab-pane active">
+        <div class="doc-section">
+          <h2>Instalar</h2>
+          <div class="code-wrap">
+            <div class="code-header install"><span><i class="fa fa-terminal"></i> apt</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="install">apt update && apt install -y nginx
+systemctl enable nginx
+systemctl start nginx</pre>
+          </div>
+          <div class="code-wrap">
+            <div class="code-header install"><span><i class="fa fa-terminal"></i> verificar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="install">nginx -v
+curl -I http://localhost</pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ng-config" class="tab-pane">
+        <div class="doc-section">
+          <h2>Proxy reverso — template</h2>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-file"></i> /etc/nginx/sites-available/app</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">server {
+    listen 80;
+    server_name app.exemplo.local;
+
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}</pre>
+          </div>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> ativar site</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx</pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ng-trouble" class="tab-pane">
+        <div class="doc-section">
+          <h2>Diagnóstico</h2>
+          <div class="code-wrap">
+            <div class="code-header trouble"><span><i class="fa fa-circle-exclamation"></i> status</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="trouble">systemctl status nginx
+nginx -t
+tail -n 50 /var/log/nginx/error.log</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PI-HOLE -->
+    <div id="pihole" class="page">
+      <div class="doc-header">
+        <h1><i class="fa fa-shield-halved" style="color:var(--accent);margin-right:10px"></i>Pi-hole</h1>
+        <p>Bloqueio de anúncios e DNS sinkhole para toda a rede local.</p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="openTab(this,'ph-install')"><i class="fa fa-download"></i>Instalação</button>
+        <button class="tab-btn" onclick="openTab(this,'ph-config')"><i class="fa fa-gear"></i>Configuração</button>
+        <button class="tab-btn" onclick="openTab(this,'ph-trouble')"><i class="fa fa-bug"></i>Troubleshooting</button>
+      </div>
+
+      <div id="ph-install" class="tab-pane active">
+        <div class="doc-section">
+          <h2>Instalar Pi-hole</h2>
+          <div class="code-wrap">
+            <div class="code-header install"><span><i class="fa fa-terminal"></i> bash</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="install">curl -sSL https://install.pi-hole.net | bash</pre>
+          </div>
+          <div class="tip info"><strong>ℹ Nota:</strong> Antes de instalar, defina um IP estático na máquina. O Pi-hole deve ter sempre o mesmo endereço na rede para funcionar como servidor DNS.</div>
+        </div>
+      </div>
+
+      <div id="ph-config" class="tab-pane">
+        <div class="doc-section">
+          <h2>Alterar senha do painel</h2>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> pihole</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">pihole -a -p</pre>
+          </div>
+          <h3>Adicionar domínio à lista negra</h3>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> pihole</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">pihole -b dominio.com.br</pre>
+          </div>
+          <h3>Atualizar listas de bloqueio</h3>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> pihole</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">pihole -g</pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ph-trouble" class="tab-pane">
+        <div class="doc-section">
+          <h2>Diagnóstico</h2>
+          <div class="code-wrap">
+            <div class="code-header trouble"><span><i class="fa fa-circle-exclamation"></i> status</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="trouble">pihole status
+pihole -d       # diagnóstico completo
+systemctl status pihole-FTL</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UBUNTU -->
+    <div id="ubuntu" class="page">
+      <div class="doc-header">
+        <h1><i class="fab fa-ubuntu" style="color:var(--accent);margin-right:10px"></i>Ubuntu VM no Proxmox</h1>
+        <p>Guia completo para provisionamento, acesso remoto e preparação da VM Ubuntu 24.04.</p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="openTab(this,'ub-install')"><i class="fa fa-download"></i>Instalação</button>
+        <button class="tab-btn" onclick="openTab(this,'ub-config')"><i class="fa fa-gear"></i>Configuração</button>
+        <button class="tab-btn" onclick="openTab(this,'ub-apps')"><i class="fa fa-puzzle-piece"></i>Apps</button>
+        <button class="tab-btn" onclick="openTab(this,'ub-trouble')"><i class="fa fa-bug"></i>Troubleshooting</button>
+      </div>
+
+      <div id="ub-install" class="tab-pane active">
+        <div class="doc-section">
+          <h2>1. Download da ISO</h2>
+          <div class="code-wrap">
+            <div class="code-header install"><span><i class="fa fa-terminal"></i> no host Proxmox</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="install">cd /var/lib/vz/template/iso/ && wget https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso</pre>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <h2>2. Parâmetros da VM</h2>
+          <table class="param-table">
+            <thead><tr><th>Parâmetro</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td>Nome</td><td><code>ubuntu</code></td></tr>
+              <tr><td>Armazenamento</td><td><code>local</code></td></tr>
+              <tr><td>ISO</td><td><code>ubuntu-24.04.4-desktop-amd64.iso</code></td></tr>
+              <tr><td>Disco</td><td><code>100 GB</code></td></tr>
+              <tr><td>CPU</td><td><code>2 vCPUs (2 cores)</code></td></tr>
+              <tr><td>Memória RAM</td><td><code>4096 MB</code></td></tr>
+              <tr><td>Rede</td><td><code>bridge padrão do Proxmox</code></td></tr>
+              <tr><td>Senha padrão</td><td><code>harpia@1234</code></td></tr>
+              <tr><td>Opção</td><td>Marcar <code>Start after created</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="ub-config" class="tab-pane">
+        <div class="doc-section">
+          <h2>SSH — instalação e configuração</h2>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> instalar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">sudo apt update && sudo apt install openssh-server -y</pre>
+          </div>
+          <h3>Editar configuração</h3>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-file"></i> /etc/ssh/sshd_config</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">sudo nano /etc/ssh/sshd_config</pre>
+          </div>
+          <p style="color:var(--muted);font-size:13px;margin:8px 0">Alterar/adicionar:</p>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-file"></i> linhas a editar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">PermitRootLogin yes
+PasswordAuthentication yes</pre>
+          </div>
+          <div class="tip warn"><strong>⚠ Segurança:</strong> <code>PermitRootLogin yes</code> não é recomendado em produção. Prefira autenticação por chave SSH em ambientes expostos.</div>
+          <h3>Gerenciar serviço</h3>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> systemctl</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">sudo systemctl enable ssh
+sudo systemctl start ssh
+sudo systemctl restart ssh
+sudo systemctl status ssh</pre>
+          </div>
+          <h3>Verificar IP da VM</h3>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> ip</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">ip a</pre>
+          </div>
+          <h3>Acessar via SSH (Windows)</h3>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> PowerShell / CMD</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">ssh ubuntu@192.168.0.10
+# senha: harpia@1234</pre>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <h2>Compatibilidade gráfica (GDM3 + Wayland)</h2>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-file"></i> /etc/gdm3/custom.conf</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">sudo nano /etc/gdm3/custom.conf</pre>
+          </div>
+          <p style="color:var(--muted);font-size:13px;margin:8px 0">Descomentar/adicionar:</p>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-file"></i> linha a editar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">WaylandEnable=false</pre>
+          </div>
+          <div class="code-wrap">
+            <div class="code-header config"><span><i class="fa fa-terminal"></i> reiniciar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="config">sudo reboot</pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ub-apps" class="tab-pane">
+        <div class="doc-section">
+          <h2>AnyDesk</h2>
+          <div class="code-wrap">
+            <div class="code-header install"><span><i class="fa fa-terminal"></i> repositório + instalação</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="install">wget -qO - https://keys.anydesk.com/repos/DEB-GPG-KEY | sudo apt-key add -
+echo "deb http://deb.anydesk.com/ all main" | sudo tee /etc/apt/sources.list.d/anydesk.list
+sudo apt update && sudo apt install anydesk -y
+sudo systemctl enable anydesk
+sudo systemctl start anydesk</pre>
+          </div>
+        </div>
+
+        <div class="doc-section">
+          <h2>Google Chrome</h2>
+          <div class="code-wrap">
+            <div class="code-header install"><span><i class="fa fa-terminal"></i> bash</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="install">wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install ./google-chrome-stable_current_amd64.deb -y</pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ub-trouble" class="tab-pane">
+        <div class="doc-section">
+          <h2>Diagnóstico</h2>
+          <div class="code-wrap">
+            <div class="code-header trouble"><span><i class="fa fa-circle-exclamation"></i> SSH</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="trouble">systemctl status ssh
+journalctl -u ssh -n 30 --no-pager</pre>
+          </div>
+          <div class="code-wrap">
+            <div class="code-header trouble"><span><i class="fa fa-circle-exclamation"></i> AnyDesk</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+            <pre class="trouble">systemctl status anydesk
+journalctl -u anydesk -n 30 --no-pager</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- BACKUP & RESTORE -->
+<div id="backup" class="page">
+  <div class="doc-header">
+    <h1><i class="fa fa-floppy-disk" style="color:var(--accent);margin-right:10px"></i>Backup & Restore</h1>
+    <p>Transferência, união, restauração, importação e geração de backups no Proxmox.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab(this,'bk-transfer')"><i class="fa fa-upload"></i>Transferência</button>
+    <button class="tab-btn" onclick="openTab(this,'bk-restore')"><i class="fa fa-rotate-left"></i>Restore</button>
+    <button class="tab-btn" onclick="openTab(this,'bk-import')"><i class="fa fa-hard-drive"></i>Importação</button>
+  </div>
+
+  <div id="bk-transfer" class="tab-pane active">
+    <div class="doc-section">
+      <h2>Enviar backup do PC para o Proxmox</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;">
+        Todo backup vindo do Windows deve ser enviado primeiro para o host Proxmox, normalmente para o diretório <code>/root</code>.
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-folder-open"></i> destino padrão</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">/root</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Enviar via WinSCP</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-network-wired"></i> conexão</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">Host: 10.170.7.x
+Port: 22
+User: root
+Password: senha do host</pre>
+      </div>
+
+      <div class="tip info">
+        <strong>Padrão:</strong> Após conectar no WinSCP, envie o arquivo de backup para <code>/root</code>.
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Enviar via SCP (PowerShell / CMD)</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-terminal"></i> scp</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">scp "C:\caminho\do\backup.vma.zst" root@10.170.7.x:/root/</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Caminho com espaço no Windows</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-terminal"></i> exemplo</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">scp "C:\Users\Fabricio\Desktop\Backup VM\backup.vma.zst" root@10.170.7.x:/root/</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Unir backup fragmentado</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;">
+        Use este processo quando o backup estiver dividido em múltiplas partes (.001, .002, .003...).
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-layer-group"></i> unir partes</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">cat backup.vma.zst.0* > backup-final.vma.zst</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-check"></i> validar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">ls -lh</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Validar envio</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-check"></i> verificar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">ls -lh /root</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="bk-restore" class="tab-pane">
+    <div class="doc-section">
+      <h2>Restore de backup Proxmox (.vma / .vma.zst)</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;">
+        Backups exportados do Proxmox normalmente usam formato <code>.vma</code> ou <code>.vma.zst</code>.
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-rotate-left"></i> qmrestore</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">qmrestore /root/backup.vma.zst 103</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Restore com storage definido</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-database"></i> storage</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">qmrestore /root/backup.vma.zst 103 --storage local-lvm</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Restore sobrescrevendo VM existente</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-triangle-exclamation"></i> force</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">qmrestore /root/backup.vma.zst 103 --storage local-lvm --force</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Descompactar backup .zst</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-box-open"></i> zstd</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">zstd -d /root/backup.vma.zst</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Gerar backup manual</h2>
+      <div class="code-wrap">
+        <div class="code-header config"><span><i class="fa fa-box-archive"></i> vzdump</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="config">vzdump 103 --storage local --compress zstd</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="bk-import" class="tab-pane">
+    <div class="doc-section">
+      <h2>Importar disco manual (.qcow2 / .img)</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;">
+        Use este fluxo quando o backup não for um backup nativo do Proxmox, mas apenas um disco exportado.
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-upload"></i> enviar disco</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">scp "C:\caminho\disco.qcow2" root@10.170.7.x:/root/</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Criar VM vazia</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-server"></i> qm create</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">qm create 103 --name ubuntu --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Importar disco</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-hard-drive"></i> importdisk</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">qm importdisk 103 /root/disco.qcow2 local-lvm</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Anexar disco importado</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-link"></i> anexar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">qm set 103 --scsihw virtio-scsi-pci --scsi0 local-lvm:vm-103-disk-0</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Definir boot</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-play"></i> boot</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">qm set 103 --boot order=scsi0</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECOVERY -->
+<div id="recovery" class="page">
+  <div class="doc-header">
+    <h1><i class="fa fa-screwdriver-wrench" style="color:var(--accent);margin-right:10px"></i>Recovery</h1>
+    <p>Recuperação, diagnóstico e reparo de falhas críticas no host Proxmox.</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab(this,'rc-fsck')"><i class="fa fa-hard-drive"></i>FSCK</button>
+    <button class="tab-btn" onclick="openTab(this,'rc-zfs')"><i class="fa fa-database"></i>ZFS</button>
+    <button class="tab-btn" onclick="openTab(this,'rc-rescue')"><i class="fa fa-life-ring"></i>Rescue</button>
+  </div>
+
+  <div id="rc-fsck" class="tab-pane active">
+    <div class="doc-section">
+      <h2>FSCK offline (modo manutenção)</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;">
+        Use este processo quando o sistema não inicializar corretamente, entrar em emergency mode ou apresentar corrupção no sistema de arquivos.
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> listar discos</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">lsblk</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> desmontar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">umount /dev/sdXn</pre>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> reparar</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">fsck -f -y /dev/sdXn</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Forçar verificação no boot</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-rotate-right"></i> touch</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">touch /forcefsck
+reboot</pre>
+      </div>
+    </div>
+
+    <div class="tip warn">
+      <strong>Atenção:</strong> Nunca rode <code>fsck</code> em partição montada.
+    </div>
+  </div>
+
+  <div id="rc-zfs" class="tab-pane">
+    <div class="doc-section">
+      <h2>Verificar pools ZFS</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-database"></i> zpool</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">zpool status
+zpool import</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Importar pool manualmente</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-terminal"></i> import</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">zpool import -f rpool</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Importar pool em modo alternativo</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-folder-tree"></i> altroot</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">zpool import -f -R /mnt rpool</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Scrub e integridade</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-shield"></i> scrub</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">zpool scrub rpool
+zpool status</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Diagnóstico avançado</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-magnifying-glass"></i> zdb</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">zdb -l /dev/sdX
+zdb -C rpool</pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="rc-rescue" class="tab-pane">
+    <div class="doc-section">
+      <h2>Boot em Rescue Mode</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;">
+        Use Rescue Mode quando o Proxmox não iniciar normalmente e for necessário recuperar o sistema manualmente.
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-life-ring"></i> rescue</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">Boot pelo ISO do Proxmox
+Advanced Options
+Rescue Boot</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Montar sistema manualmente</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-folder-open"></i> mount</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">mount /dev/sdXn /mnt
+mount --bind /dev /mnt/dev
+mount --bind /proc /mnt/proc
+mount --bind /sys /mnt/sys
+chroot /mnt</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Logs e diagnóstico</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-file-lines"></i> logs</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">journalctl -xe
+dmesg -T | tail -50</pre>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h2>Recuperação de arquivos</h2>
+      <div class="code-wrap">
+        <div class="code-header trouble"><span><i class="fa fa-toolbox"></i> utilitários</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+        <pre class="trouble">apt install testdisk -y
+testdisk
+
+apt install photorec -y
+photorec</pre>
+      </div>
+    </div>
+
+    <div class="tip warn">
+      <strong>Atenção:</strong> Se o pool estiver corrompido e o recovery falhar, exporte os dados possíveis e reinstale o host.
+    </div>
+  </div>
+</div>
+
+  <!-- UTILITÁRIOS -->
+  <div id="utils" class="page">
+    <div class="doc-header">
+      <h1><i class="fa fa-toolbox" style="color:var(--accent);margin-right:10px"></i>Utilitários</h1>
+      <p>Ferramentas, downloads, acessos rápidos, ISOs e comandos recorrentes de apoio operacional.</p>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="openTab(this,'ut-tools')"><i class="fa fa-download"></i>Ferramentas</button>
+      <button class="tab-btn" onclick="openTab(this,'ut-iso')"><i class="fa fa-compact-disc"></i>ISOs</button>
+      <button class="tab-btn" onclick="openTab(this,'ut-remote')"><i class="fa fa-network-wired"></i>Acesso Remoto</button>
+      <button class="tab-btn" onclick="openTab(this,'ut-cmd')"><i class="fa fa-terminal"></i>Comandos</button>
+    </div>
+
+    <!-- FERRAMENTAS -->
+    <div id="ut-tools" class="tab-pane active">
+      <div class="doc-section">
+        <h2>Downloads essenciais</h2>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> MobaXterm Portable</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://download.mobatek.net/2632026040882303/MobaXterm_Portable_v26.3.zip</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> WinSCP</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://winscp.net/eng/download.php</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> AnyDesk</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://anydesk.com/en/downloads/windows</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>7-Zip</h2>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> 7-Zip (64-bit)</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://www.7-zip.org/a/7z2409-x64.exe</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> 7-Zip (32-bit)</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://www.7-zip.org/a/7z2409.exe</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>Navegadores</h2>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> Google Chrome</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://www.google.com/chrome/</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-download"></i> Mozilla Firefox</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://www.mozilla.org/firefox/new/</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ISOs -->
+    <div id="ut-iso" class="tab-pane">
+      <div class="doc-section">
+        <h2>ISOs úteis</h2>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-compact-disc"></i> Proxmox VE</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://www.proxmox.com/en/downloads</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-compact-disc"></i> Ubuntu Desktop</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://ubuntu.com/download/desktop</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-compact-disc"></i> Ubuntu Server</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://ubuntu.com/download/server</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-compact-disc"></i> Debian</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://www.debian.org/distrib/</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header config"><span><i class="fa fa-compact-disc"></i> GParted Live</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="config">https://gparted.org/livecd.php</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACESSO REMOTO -->
+    <div id="ut-remote" class="tab-pane">
+      <div class="doc-section">
+        <h2>Acesso rápido Proxmox</h2>
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-globe"></i> painel web</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">https://10.170.7.x:8006</pre>
+        </div>
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-terminal"></i> ssh host</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">ssh root@10.170.7.x</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>Acesso rápido Docker CT</h2>
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-terminal"></i> ssh docker</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">ssh root@10.170.7.102</pre>
+        </div>
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fab fa-docker"></i> portainer</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">https://10.170.7.102:9443</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>Acesso rápido Pi-hole</h2>
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-shield-halved"></i> painel</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">http://10.170.7.100/admin</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>Acesso rápido Nginx Proxy</h2>
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-network-wired"></i> painel</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">http://10.170.7.101:81</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMANDOS -->
+    <div id="ut-cmd" class="tab-pane">
+      <div class="doc-section">
+        <h2>Comandos recorrentes — Host Proxmox</h2>
+
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-server"></i> VMs e CTs</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">qm list
+  pct list
+  qm status 103
+  pct status 100</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-hard-drive"></i> Storage</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">pvesm status
+  lsblk
+  df -h</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-network-wired"></i> Rede</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">ip a
+  brctl show
+  ping 8.8.8.8</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>Comandos recorrentes — Docker</h2>
+
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fab fa-docker"></i> Containers</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">docker ps
+  docker ps -a
+  docker restart CONTAINER
+  docker logs CONTAINER</pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fab fa-docker"></i> Compose</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">docker compose up -d
+  docker compose down
+  docker compose restart</pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>Comandos recorrentes — Logs e diagnóstico</h2>
+
+        <div class="code-wrap">
+          <div class="code-header trouble"><span><i class="fa fa-file-lines"></i> Logs</span><button class="copy-btn" onclick="copyCode(this)"><i class="fa fa-copy"></i>Copiar</button></div>
+          <pre class="trouble">journalctl -xe
+  dmesg -T | tail -50
+  systemctl status SERVICO</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+const sidebar = document.getElementById('sidebar');
+
+function toggleSidebar() {
+  sidebar.classList.toggle('collapsed');
+}
+
+function goTo(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('breadcrumb').innerHTML = `/<span>${id}</span>`;
+  document.getElementById('search').value = '';
+  clearSearch();
+}
+
+function openTab(btn, paneId) {
+  const bar = btn.closest('.tab-bar');
+  const page = btn.closest('.page');
+  bar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  page.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(paneId).classList.add('active');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText.trim()).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<i class="fa fa-check"></i>Copiado';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<i class="fa fa-copy"></i>Copiar';
+    }, 2000);
+  });
+}
+
+function doSearch(val) {
+  clearSearch();
+  if (!val.trim()) return;
+  const q = val.toLowerCase();
+  const activePage = document.querySelector('.page.active');
+  if (!activePage || activePage.id === 'home') return;
+
+  // mostrar todos os tab-panes para buscar
+  activePage.querySelectorAll('.tab-pane').forEach(p => p.classList.add('active'));
+
+  let found = false;
+  activePage.querySelectorAll('.code-wrap').forEach(wrap => {
+    const text = wrap.querySelector('pre')?.innerText.toLowerCase() || '';
+    const headerText = wrap.querySelector('.code-header')?.innerText.toLowerCase() || '';
+    if (text.includes(q) || headerText.includes(q)) {
+      wrap.classList.add('search-match');
+      found = true;
+    }
+  });
+
+  if (found) {
+    const first = activePage.querySelector('.search-match');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function clearSearch() {
+  document.querySelectorAll('.search-match').forEach(el => el.classList.remove('search-match'));
+}
+
+
+const LOGIN_USER = "admin";
+const LOGIN_PASS = "admin1pass";
+
+function unlockApp() {
+  const overlay = document.getElementById("loginOverlay");
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("mainApp");
+
+  overlay.style.display = "none";
+  sidebar.style.display = "flex";
+  main.style.display = "flex";
+
+  document.body.style.display = "flex";
+  document.querySelector('.top-user-info span').textContent = LOGIN_USER;
+}
+
+function lockApp() {
+  const overlay = document.getElementById("loginOverlay");
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("mainApp");
+
+  overlay.style.display = "flex";
+  sidebar.style.display = "none";
+  main.style.display = "none";
+}
+
+function logout() {
+  sessionStorage.removeItem("auth");
+  lockApp();
+}
+
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const user = document.getElementById("loginUser").value.trim();
+  const pass = document.getElementById("loginPass").value.trim();
+  const error = document.getElementById("loginError");
+
+  if (user === LOGIN_USER && pass === LOGIN_PASS) {
+    sessionStorage.setItem("auth", "true");
+    error.style.display = "none";
+    unlockApp();
+  } else {
+    error.style.display = "block";
+  }
+});
+
+window.addEventListener("load", () => {
+  if (sessionStorage.getItem("auth") === "true") {
+    unlockApp();
+  } else {
+    lockApp();
+  }
+});
+
+const loginPass = document.getElementById("loginPass");
+const togglePass = document.getElementById("togglePass");
+
+togglePass.addEventListener("mousedown", () => {
+  loginPass.type = "text";
+});
+
+togglePass.addEventListener("mouseup", () => {
+  loginPass.type = "password";
+});
+
+togglePass.addEventListener("mouseleave", () => {
+  loginPass.type = "password";
+});
+
+togglePass.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  loginPass.type = "text";
+});
+
+togglePass.addEventListener("touchend", () => {
+  loginPass.type = "password";
+});
+
+</script>
+</body>
+</html>
